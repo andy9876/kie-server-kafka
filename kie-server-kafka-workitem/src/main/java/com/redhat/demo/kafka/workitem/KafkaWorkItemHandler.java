@@ -41,6 +41,7 @@ public class KafkaWorkItemHandler implements WorkItemHandler {
 		try {
 			KafkaClient client = (KafkaClient)new InitialContext().lookup("java:module/KafkaClientBean!com.redhat.demo.kafka.KafkaClient");
 			client.send(topic, key, value);
+			manager.completeWorkItem(workItem.getId(), null);
 		} catch (NamingException e) {
 			LOG.error("Could not find Kafka client", e);
 			manager.abortWorkItem(workItem.getId());

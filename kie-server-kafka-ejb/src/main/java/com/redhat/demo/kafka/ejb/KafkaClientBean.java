@@ -15,7 +15,6 @@
 
 package com.redhat.demo.kafka.ejb;
 
-
 import static javax.ejb.TransactionAttributeType.NOT_SUPPORTED;
 
 import java.util.ArrayList;
@@ -37,6 +36,8 @@ import javax.ejb.TransactionAttribute;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.redhat.demo.kafka.KafkaClient;
 
@@ -48,23 +49,36 @@ import com.redhat.demo.kafka.KafkaClient;
 @TransactionAttribute(NOT_SUPPORTED)
 public class KafkaClientBean implements KafkaClient {
 
-	
+	private static final Logger LOG = LoggerFactory
+			.getLogger(KafkaClientBean.class);
+
 	/* Configuration */
-	private static final Long TIMEOUT = Long.parseLong(System.getProperty("org.apache.kafka.poll.timeout", "100"));
-	private static final List<String> TOPICS = Arrays.asList(System.getProperty("org.apache.kafka.topics", "kafka.ejb.client"));
-	private static final String BOOTSTRAP_SERVERS = System.getProperty("org.apache.kafka.boostrap.servers","localhost:9092");
-	private static final String ACKS = System.getProperty("org.apache.kafka.acks","all");
-	private static final Integer RETRIES = Integer.parseInt(System.getProperty("org.apache.kafka.retries", "0"));
-	private static final Integer BATCH_SIZE = Integer.parseInt(System.getProperty("org.apache.kafka.batch.size", "16384"));
-	private static final Integer LINGER_MS = Integer.parseInt(System.getProperty("org.apache.kafka.linger.ms", "1"));
-	private static final Integer BUFFER_MEMORY = Integer.parseInt(System.getProperty("org.apache.kafka.buffer.memory", "33554432"));
-	
-	private static final String GROUP_ID = System.getProperty("org.apache.kafka.group.id", "kafka.ejb.client");
-	private static final String ENABLE_AUTO_COMMIT = System.getProperty("org.apache.kafka.enable.auto.commit", "true");
-	private static final String AUTO_COMMIT_INTERVAL_MS = System.getProperty("org.apache.kafka.auto.commit.interval.ms", "1000");
-	private static final String SESSION_TIMEOUT_MS = System.getProperty("org.apache.kafka.session.timeout.ms", "30000");
-	 
-	
+	private static final Long TIMEOUT = Long.parseLong(System.getProperty(
+			"org.apache.kafka.poll.timeout", "100"));
+	private static final List<String> TOPICS = Arrays.asList(System
+			.getProperty("org.apache.kafka.topics", "kafka.ejb.client"));
+	private static final String BOOTSTRAP_SERVERS = System.getProperty(
+			"org.apache.kafka.boostrap.servers", "localhost:9092");
+	private static final String ACKS = System.getProperty(
+			"org.apache.kafka.acks", "all");
+	private static final Integer RETRIES = Integer.parseInt(System.getProperty(
+			"org.apache.kafka.retries", "0"));
+	private static final Integer BATCH_SIZE = Integer.parseInt(System
+			.getProperty("org.apache.kafka.batch.size", "16384"));
+	private static final Integer LINGER_MS = Integer.parseInt(System
+			.getProperty("org.apache.kafka.linger.ms", "1"));
+	private static final Integer BUFFER_MEMORY = Integer.parseInt(System
+			.getProperty("org.apache.kafka.buffer.memory", "33554432"));
+
+	private static final String GROUP_ID = System.getProperty(
+			"org.apache.kafka.group.id", "kafka.ejb.client");
+	private static final String ENABLE_AUTO_COMMIT = System.getProperty(
+			"org.apache.kafka.enable.auto.commit", "true");
+	private static final String AUTO_COMMIT_INTERVAL_MS = System.getProperty(
+			"org.apache.kafka.auto.commit.interval.ms", "1000");
+	private static final String SESSION_TIMEOUT_MS = System.getProperty(
+			"org.apache.kafka.session.timeout.ms", "30000");
+
 	Properties producerProperties;
 	Properties consumerProperties;
 
@@ -78,7 +92,7 @@ public class KafkaClientBean implements KafkaClient {
 
 	@PostConstruct
 	public void init() {
-		
+
 		producerProperties = new Properties();
 		producerProperties.put("bootstrap.servers", BOOTSTRAP_SERVERS);
 		producerProperties.put("acks", ACKS);
@@ -86,19 +100,24 @@ public class KafkaClientBean implements KafkaClient {
 		producerProperties.put("batch.size", BATCH_SIZE);
 		producerProperties.put("linger.ms", LINGER_MS);
 		producerProperties.put("buffer.memory", BUFFER_MEMORY);
-		producerProperties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-		producerProperties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-		
+		producerProperties.put("key.serializer",
+				"org.apache.kafka.common.serialization.StringSerializer");
+		producerProperties.put("value.serializer",
+				"org.apache.kafka.common.serialization.StringSerializer");
+
 		producer = new KafkaProducer<>(producerProperties);
 
 		consumerProperties = new Properties();
 		consumerProperties.put("bootstrap.servers", BOOTSTRAP_SERVERS);
 		consumerProperties.put("group.id", GROUP_ID);
 		consumerProperties.put("enable.auto.commit", ENABLE_AUTO_COMMIT);
-		consumerProperties.put("auto.commit.interval.ms", AUTO_COMMIT_INTERVAL_MS);
+		consumerProperties.put("auto.commit.interval.ms",
+				AUTO_COMMIT_INTERVAL_MS);
 		consumerProperties.put("session.timeout.ms", SESSION_TIMEOUT_MS);
-		consumerProperties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-		consumerProperties.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+		consumerProperties.put("key.deserializer",
+				"org.apache.kafka.common.serialization.StringDeserializer");
+		consumerProperties.put("value.deserializer",
+				"org.apache.kafka.common.serialization.StringDeserializer");
 	}
 
 	@PreDestroy
@@ -129,7 +148,12 @@ public class KafkaClientBean implements KafkaClient {
 
 		while (!context.wasCancelCalled()) {
 			consumer.poll(TIMEOUT).forEach(
-					r -> recordCallback.accept(r.key(), r.value()));
+					r -> 
+						{try {
+							recordCallback.accept(r.key(), r.value());
+						 } catch(Exception e){
+							 LOG.error("Failed to process record callback", e);
+						 }});
 		}
 
 		if (consumer != null) {
@@ -141,8 +165,8 @@ public class KafkaClientBean implements KafkaClient {
 	}
 
 	/**
-	 * Send a record to a topic. This is a dumb pipe right now. 
-	 * TODO: Make this a little more intelligent
+	 * Send a record to a topic. This is a dumb pipe right now. TODO: Make this
+	 * a little more intelligent
 	 * 
 	 * @param topic
 	 *            String topic to send record to

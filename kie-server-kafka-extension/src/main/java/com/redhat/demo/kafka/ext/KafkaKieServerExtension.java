@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
+import java.util.function.BiConsumer;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -75,6 +76,8 @@ public class KafkaKieServerExtension implements KieServerExtension {
 					"Disabling KafkaKieServerExtension due to missing dependency: {}",
 					ProcessService.class.getName());
 			return;
+		}else{
+			SignalCallback.init(processService);
 		}
 		
 		KafkaClient client = null;
@@ -84,7 +87,7 @@ public class KafkaKieServerExtension implements KieServerExtension {
 			LOG.error("Could not retrieve KafkaClient EJB", e);
 		}
 		if (client != null) {
-			clientHandle = client.startConsumer((k,v) -> processService.signalEvent(k, v, null));
+			clientHandle = client.startConsumer(SignalCallback.INSTANCE);
 		}
 	}
 
@@ -97,6 +100,39 @@ public class KafkaKieServerExtension implements KieServerExtension {
 			}
 		}
 		return processService;
+	}
+	
+	public static class SignalCallback implements BiConsumer<String, String>{
+		static SignalCallback INSTANCE = null;
+		
+		ProcessService processService;
+		
+		static void init(ProcessService processService){
+			INSTANCE = new SignalCallback(processService);
+		}
+		
+		private SignalCallback(ProcessService processService) {
+			this.processService = processService;
+		}
+		
+		@Override
+		public void accept(String k, String v) {
+			String[] ks = k.split(":");
+			String[] vs = v.split(":");
+			if(ks.length > 1){
+				if(vs.length > 1){
+					processService.signalProcessInstance(Long.parseLong(ks[1]), vs[0], vs[1]);
+				}else{
+					processService.signalProcessInstance(Long.parseLong(ks[1]), vs[0], null);
+				}
+			}else{
+				if(vs.length > 1){
+					processService.signalEvent(ks[0], vs[0], vs[1]);
+				}else{
+					processService.signalEvent(ks[0], vs[0], null);
+				}
+			}
+		}
 	}
 
 	@Override
