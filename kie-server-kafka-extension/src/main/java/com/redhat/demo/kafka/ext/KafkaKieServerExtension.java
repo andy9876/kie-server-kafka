@@ -119,20 +119,25 @@ public class KafkaKieServerExtension implements KieServerExtension {
 		public void accept(String k, String v) {
 			String[] ks = k.split(":");
 			String[] vs = v.split(":");
-			if(ks.length > 1){
-				if(vs.length > 1){
-					processService.signalProcessInstance(Long.parseLong(ks[1]), vs[0], vs[1]);
-				}else{
-					processService.signalProcessInstance(Long.parseLong(ks[1]), vs[0], null);
-				}
-			}else{
-				if(vs.length > 1){
-					processService.signalEvent(ks[0], vs[0], vs[1]);
-				}else{
-					processService.signalEvent(ks[0], vs[0], null);
-				}
-			}
-		}
+            System.out.println("element 0 is " + vs[0]);
+            System.out.println("element 1 is " + vs[1]);
+            System.out.println("element 2 is " + vs[2]);
+            if (ks.length > 1) {
+                if (vs.length > 1) {
+                    System.out.println("ks[1] is: " + ks[1] + " value is : " + vs[2].split(",")[0].split("\"")[1]);
+                    this.processService.signalProcessInstance(Long.valueOf(Long.parseLong(ks[1])), vs[2].split(",")[0].split("\"")[1], (Object)v);
+                } else {
+                    this.processService.signalProcessInstance(Long.valueOf(Long.parseLong(ks[1])), vs[0], (Object)null);
+                    System.out.println("ks[1] is: " + ks[1] + " vs[0] is : " + vs[0]);
+                }
+            } else if (vs.length > 1) {
+                String actionValueFromJSON = vs[2].split(",")[0].split("\"")[1];
+                System.out.println("parsed action is " + actionValueFromJSON);
+                this.processService.signalEvent(ks[0], actionValueFromJSON, (Object)v);
+            } else {
+                this.processService.signalEvent(ks[0], vs[0], (Object)null);
+            }
+        }
 	}
 
 	@Override

@@ -56,9 +56,9 @@ public class KafkaClientBean implements KafkaClient {
 	private static final Long TIMEOUT = Long.parseLong(System.getProperty(
 			"org.apache.kafka.poll.timeout", "100"));
 	private static final List<String> TOPICS = Arrays.asList(System
-			.getProperty("org.apache.kafka.topics", "kafka.ejb.client"));
+			.getProperty("org.apache.kafka.topics", "card.transaction"));
 	private static final String BOOTSTRAP_SERVERS = System.getProperty(
-			"org.apache.kafka.boostrap.servers", "localhost:9092");
+			"org.apache.kafka.boostrap.servers", "18.204.180.80:9092");
 	private static final String ACKS = System.getProperty(
 			"org.apache.kafka.acks", "all");
 	private static final Integer RETRIES = Integer.parseInt(System.getProperty(
@@ -71,7 +71,7 @@ public class KafkaClientBean implements KafkaClient {
 			.getProperty("org.apache.kafka.buffer.memory", "33554432"));
 
 	private static final String GROUP_ID = System.getProperty(
-			"org.apache.kafka.group.id", "kafka.ejb.client");
+			"org.apache.kafka.group.id", "decisioning");
 	private static final String ENABLE_AUTO_COMMIT = System.getProperty(
 			"org.apache.kafka.enable.auto.commit", "true");
 	private static final String AUTO_COMMIT_INTERVAL_MS = System.getProperty(
